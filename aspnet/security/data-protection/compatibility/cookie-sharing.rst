@@ -10,21 +10,23 @@ Sharing authentication cookies between applications
 
 To share authentication cookies between two different ASP.NET Core applications, configure each application that should share cookies as follows.
 
-1. Add Authentication to your app
+1. In your configure method use the CookieAuthenticationOptions to set up the data protection service for cookies and the AuthenticationScheme to match ASP.NET 4.X
 
 .. code-block:: c#
 
-  public void ConfigureServices(IServiceCollection services)
+  // If using identity
+  app.AddIdentity<ApplicationUser, IdentityRole>(options =>
+  
   {
-      ...
-      services.AddAuthentication();
-      ...
-  }
 
-2. In your configure method use the CookieAuthenticationOptions to set up the data protection service for cookies
+      options.Cookies.ApplicationCookie.AuthenticationScheme = "ApplicationCookie"; // To match the auth type used in ASP.NET 4.X
 
-.. code-block:: c#
+      options.Cookies.ApplicationCookie.DataProtectionProvider = DataProtectionProvider.Create(new DirectoryInfo(@"c:\shared-auth-ticket-keys\"));
 
+  });
+
+
+  // If using cookies directly
   app.UseCookieAuthentication(new CookieAuthenticationOptions
   {
       DataProtectionProvider = DataProtectionProvider.Create(new DirectoryInfo(@"c:\shared-auth-ticket-keys\"))
@@ -69,13 +71,13 @@ To share authentication cookies between your ASP.NET 4.x applications and your A
       // ...
   });
   
-3. Modify the call to UseCookieAuthentication as follows, changing the AuthenticationType and CookieName to match those of the ASP.NET Core cookie authentication middleware, and providing an instance of a DataProtectionProvider that has been initialized to a key storage location.
+3. Modify the call to UseCookieAuthentication as follows, changing the CookieName to match those of the ASP.NET Core cookie authentication middleware, and providing an instance of a DataProtectionProvider that has been initialized to a key storage location.
 
 .. code-block:: c#
 
   app.UseCookieAuthentication(new CookieAuthenticationOptions
   {
-      AuthenticationType = "Cookies",
+      AuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
       CookieName = ".AspNetCore.Cookies",
       // CookiePath = "...", (if necessary)
       // ...
@@ -88,17 +90,6 @@ To share authentication cookies between your ASP.NET 4.x applications and your A
   
   The DirectoryInfo has to point to the same storage location that you pointed your ASP.NET Core application to and should be configured using the same settings.
   
-4. In IdentityModels.cs, change the call to ApplicationUserManager.CreateIdentity to use the same authentication type as in the cookie middleware.
-
-.. code-block:: c#
-
-  public ClaimsIdentity GenerateUserIdentity(ApplicationUserManager manager)
-  {
-      // Note the authenticationType must match the one defined in CookieAuthenticationOptions.AuthenticationType
-      var userIdentity = manager.CreateIdentity(this, "Cookies");
-      // ...
-  }
-
 The ASP.NET 4.x and ASP.NET Core applications are now configured to share authentication cookies.
 
 .. note:: 
